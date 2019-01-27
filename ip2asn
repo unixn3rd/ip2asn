@@ -1,0 +1,53 @@
+#!/bin/bash
+#ip2asn looks up ASNs based on domain name, IPv4/IPv6 address, CIDR, or ASN
+
+entry=$1
+
+check_entry(){
+# Check if input is null
+if [ -z $entry ]; then
+        echo "Please Enter a Valid IPv4/IPv6 Address, Domain Name, CIDR Block, or ASN.. ip2asn [string]"
+    exit 1
+# Match IPv4 address
+elif [[ $entry =~ ((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])+$ ]]; then
+    ip
+# Match domain name
+elif [[ $entry =~ ^[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9]\.[a-zA-Z]{2,}$ ]];then
+    domain
+# Match CIDR block
+elif [[ $entry =~ ((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])+\\*  ]];then
+    ip
+# Match IPv6 address
+elif [[ $entry =~ (([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])) ]];then
+    ip
+# Match Autonomous System Number
+elif [[ $entry =~ [0-9] ]] || [[ $entry =~ ^[asAS] ]]; then
+    asn
+fi
+}
+
+ip(){
+# Used for both IPv4 and CIDR lookups
+# Cut slash notation off of CIDRs before forwarding whois request
+entry=$(echo $entry | cut -d'/' -f1);whois -h whois.cymru.com " -v $entry"
+}
+
+domain(){
+# Resolve DNS A record of domain name before forwarding whois request
+entry=$(dig $entry a +short);whois -h whois.cymru.com " -v $entry"
+}
+
+asn(){
+# Check if ASN has 'AS' at the beginning of string.
+# If not add 'AS' before forwarding whois request
+if [[ $entry != ^[asAS] ]]; then
+    entry=$(echo $entry | sed 's/^/AS/')
+fi
+whois -h whois.cymru.com " -v $entry"
+}
+
+main(){
+check_entry
+}
+
+main
